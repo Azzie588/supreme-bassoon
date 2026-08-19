@@ -80,6 +80,18 @@ npx wrangler secret put SESSION_SECRET
 
 ## Security
 
+Two independent layers guard this app.
+
+**Cloudflare Access (outer layer).** Requests are authenticated at Cloudflare's edge
+before they ever reach the Worker, so unauthenticated traffic never touches app code
+or the database. Enable it under Workers &amp; Pages → the Worker → **Access** →
+*Protect this Worker behind Access*, scoped to **All traffic**. Requires Zero Trust
+to be enabled on the account first. Note that this also blocks programmatic access
+(`curl`, scripts) unless you issue a service token.
+
+**Application passphrase (inner layer).** Everything below still applies, so a
+misconfigured Access policy does not leave the app wide open:
+
 - Single shared passphrase, compared in constant time via `crypto.subtle.verify` to
   avoid leaking information through response timing.
 - Session cookie is HttpOnly, Secure, SameSite=Strict, signed with HMAC-SHA256.
@@ -88,6 +100,16 @@ npx wrangler secret put SESSION_SECRET
 - All queries use bound parameters. Table names in the generic helpers come only from
   fixed literals in route handlers, never from request input.
 - CSP allows no external origins; all assets are bundled and served from the worker.
+
+Generate the passphrase with a cryptographic RNG — not `Math.random()` — and aim for
+80+ bits of entropy:
+
+```bash
+node -e "const c=require('crypto'),A='abcdefghjkmnpqrstvwxyz23456789',\
+l=Math.floor(256/A.length)*A.length;let o='';\
+while(o.length<20){const b=c.randomBytes(1)[0];if(b<l)o+=A[b%A.length];}\
+console.log(o.match(/.{1,5}/g).join('-'))"
+```
 
 ## Keep out of version control
 
