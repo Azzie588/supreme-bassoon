@@ -1,0 +1,28 @@
+﻿# Template for worker/wrangler.toml, which is gitignored because it carries the
+# live D1 database_id. Copy this file to wrangler.toml and fill in the real value:
+#
+#   cp wrangler.example.toml wrangler.toml
+#
+# Find the database_id with:  npx wrangler d1 list
+#
+# account_id is deliberately omitted — Wrangler infers it from `wrangler login`
+# when the account has a single login, so it never needs to live in the repo.
+
+name = "money-dashboard"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "../frontend/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "financial-tracker-db"
+database_id = "YOUR_D1_DATABASE_ID_HERE"
+migrations_dir = "migrations"
+
+# Secrets are never stored in this file. Set them once per worker with:
+#   npx wrangler secret put APP_PASSPHRASE
+#   npx wrangler secret put SESSION_SECRET

@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.log
+
+# Anything personal or account-identifying stays local. This repository is
+# public, so nothing under private/ should ever be committed:
+#   - the payroll schedule PDF and the paydate seed derived from it
+#   - the original handoff doc (contains Cloudflare account + database IDs)
+private/
+
+# D1 dumps — contain real account names and balances.
+worker/backups/
+
+# Contains the live D1 database_id. Copy wrangler.example.toml to
+# wrangler.toml and fill in the real value; see README.md.
+worker/wrangler.toml
