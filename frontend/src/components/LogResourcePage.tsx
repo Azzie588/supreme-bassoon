@@ -34,7 +34,47 @@ export function LogResourcePage(props: Props) {
   const [historyFor, setHistoryFor] = useState<Row | null>(null);
   const [history, setHistory] = useState<Row[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const { values, set, reset } = useForm({ date: todayISO() });
+
+  /**
+   * Carries an item's current values into the form so an update only requires
+   * changing what actually moved (usually just the balance). The date is
+   * deliberately today's rather than the source row's — this writes a new dated
+   * snapshot, it does not edit the old one.
+   */
+  function valuesFromRow(row: Row): Record<string, string> {
+    const next: Record<string, string> = { date: todayISO(), item_id: row.item_id };
+    for (const col of props.columns) {
+      next[col.key] = row[col.key] == null ? "" : String(row[col.key]);
+    }
+    return next;
+  }
+
+  function startUpdate(row: Row) {
+    setUpdatingItemId(row.item_id);
+    reset(valuesFromRow(row));
+    setShowForm(true);
+  }
+
+  function startNew() {
+    setUpdatingItemId(null);
+    reset({ date: todayISO() });
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setUpdatingItemId(null);
+    reset({ date: todayISO() });
+    setShowForm(false);
+  }
+
+  function pickItem(e: Event) {
+    const itemId = (e.currentTarget as HTMLSelectElement).value;
+    const row = rows.find((r) => r.item_id === itemId);
+    if (row) startUpdate(row);
+    else startNew();
+  }
 
   async function load() {
     setLoading(true);
@@ -61,8 +101,7 @@ export function LogResourcePage(props: Props) {
       body[col.key] = col.type === "number" ? toNumOrNull(raw) : raw || null;
     }
     await api.post(`/${props.basePath}`, body);
-    reset({ date: todayISO() });
-    setShowForm(false);
+    closeForm();
     await load();
     props.onChange?.();
   }
@@ -78,21 +117,37 @@ export function LogResourcePage(props: Props) {
     <div>
       <div class="topbar">
         <h2>{props.title}</h2>
-        <button onClick={() => setShowForm((s) => !s)}>{showForm ? "Cancel" : "Add entry"}</button>
+        <button onClick={showForm ? closeForm : startNew}>{showForm ? "Cancel" : "Add new"}</button>
       </div>
 
       {showForm && (
-        <Card title="New entry">
+        <Card
+          title={
+            updatingItemId
+              ? `Update — ${props.nameOf(rows.find((r) => r.item_id === updatingItemId) as Row)}`
+              : "New entry"
+          }
+        >
           <form onSubmit={submit}>
+            {updatingItemId && (
+              <p class="muted" style={{ marginTop: 0 }}>
+                Current values are filled in below — change only what moved. Saving records a new
+                dated snapshot and keeps the previous one in history.
+              </p>
+            )}
             <div class="form-grid">
               <Field label="Date" name="date" type="date" value={values.date ?? ""} onChange={set("date")} required />
-              <Field
-                label="Item (existing item_id, blank = new)"
-                name="item_id"
-                value={values.item_id ?? ""}
-                onChange={set("item_id")}
-                options={Array.from(new Set(rows.map((r) => r.item_id)))}
-              />
+              <div class="field">
+                <label for="item_id">Item</label>
+                <select id="item_id" name="item_id" value={values.item_id ?? ""} onChange={pickItem}>
+                  <option value="">— New item —</option>
+                  {rows.map((r) => (
+                    <option value={r.item_id} key={r.item_id}>
+                      {props.nameOf(r)}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {props.columns.map((col) =>
                 col.type === "textarea" ? (
                   <TextAreaField
@@ -154,6 +209,9 @@ export function LogResourcePage(props: Props) {
                       ))}
                     {props.derivedColumns?.map((c) => <td key={c.label}>{c.compute(row)}</td>)}
                     <td>
+                      <button class="link" onClick={() => startUpdate(row)}>
+                        Update
+                      </button>
                       <button class="link" onClick={() => openHistory(row)}>
                         History
                       </button>
