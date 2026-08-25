@@ -1,7 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
 import { useForm, toNumOrNull } from "../useForm";
-import { Card, Field, TextAreaField } from "./ui";
+import { Card, Field, SortableTh, TextAreaField } from "./ui";
+import { useSortable } from "../sorting";
 import { fmtDate, todayISO } from "../utils";
 
 export interface ColumnConfig {
@@ -17,6 +18,9 @@ type Row = Record<string, unknown> & { id: number; item_id: string; date: string
 interface DerivedColumn {
   label: string;
   compute: (row: Row) => string;
+  /** Underlying value to sort on, so "$9.00" and "$100.00" order numerically
+   *  rather than by their formatted text. Falls back to `compute` if omitted. */
+  sortValue?: (row: Row) => number | string | null;
 }
 
 interface Props {
@@ -36,6 +40,21 @@ export function LogResourcePage(props: Props) {
   const [showForm, setShowForm] = useState(false);
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const { values, set, reset } = useForm({ date: todayISO() });
+
+  /** Resolves a column key to the value it sorts on. `__item` is the synthetic
+   *  first column rendered via `nameOf`; derived columns sort on their number. */
+  function sortValueFor(row: Row, key: string): unknown {
+    if (key === "__item") return props.nameOf(row);
+    if (key === "date") return row.date;
+    const derived = props.derivedColumns?.find((d) => d.label === key);
+    if (derived) return derived.sortValue ? derived.sortValue(row) : derived.compute(row);
+    return row[key];
+  }
+
+  const { sorted: sortedRows, sort, toggle } = useSortable(rows, sortValueFor);
+  const historySort = useSortable(history, (row: Row, key: string) =>
+    key === "date" ? row.date : row[key],
+  );
 
   /**
    * Carries an item's current values into the form so an update only requires
@@ -186,19 +205,21 @@ export function LogResourcePage(props: Props) {
             <table>
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th>Date</th>
+                  <SortableTh label="Item" sortKey="__item" sort={sort} onSort={toggle} />
+                  <SortableTh label="Date" sortKey="date" sort={sort} onSort={toggle} />
                   {props.columns
                     .filter((c) => c.type !== "textarea")
                     .map((c) => (
-                      <th key={c.key}>{c.label}</th>
+                      <SortableTh key={c.key} label={c.label} sortKey={c.key} sort={sort} onSort={toggle} />
                     ))}
-                  {props.derivedColumns?.map((c) => <th key={c.label}>{c.label}</th>)}
+                  {props.derivedColumns?.map((c) => (
+                    <SortableTh key={c.label} label={c.label} sortKey={c.label} sort={sort} onSort={toggle} />
+                  ))}
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {sortedRows.map((row) => (
                   <tr key={row.item_id}>
                     <td>{props.nameOf(row)}</td>
                     <td>{fmtDate(row.date)}</td>
@@ -233,16 +254,22 @@ export function LogResourcePage(props: Props) {
             <table>
               <thead>
                 <tr>
-                  <th>Date</th>
+                  <SortableTh label="Date" sortKey="date" sort={historySort.sort} onSort={historySort.toggle} />
                   {props.columns
                     .filter((c) => c.type !== "textarea")
                     .map((c) => (
-                      <th key={c.key}>{c.label}</th>
+                      <SortableTh
+                        key={c.key}
+                        label={c.label}
+                        sortKey={c.key}
+                        sort={historySort.sort}
+                        onSort={historySort.toggle}
+                      />
                     ))}
                 </tr>
               </thead>
               <tbody>
-                {history.map((row) => (
+                {historySort.sorted.map((row) => (
                   <tr key={row.id}>
                     <td>{fmtDate(row.date)}</td>
                     {props.columns

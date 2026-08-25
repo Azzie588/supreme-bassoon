@@ -17,7 +17,6 @@ export function RecurringPayments(_props: { path?: string }) {
       title="Recurring Payments"
       basePath="recurring-payments"
       columns={columns}
-      nameOf={(r) => String(r.name ?? "Payment")}
     />
   );
 }

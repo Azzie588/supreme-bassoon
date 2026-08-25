@@ -1,7 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api";
 import { useForm, toNumOrNull } from "../useForm";
-import { Card, Field, TextAreaField } from "./ui";
+import { Card, Field, SortableTh, TextAreaField } from "./ui";
+import { useSortable } from "../sorting";
 import type { ColumnConfig } from "./LogResourcePage";
 
 type Row = Record<string, unknown> & { item_id: string };
@@ -10,7 +11,6 @@ interface Props {
   title: string;
   basePath: string;
   columns: ColumnConfig[];
-  nameOf: (row: Row) => string;
   onChange?: () => void;
 }
 
@@ -20,6 +20,8 @@ export function ListResourcePage(props: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const { values, set, reset, setValues } = useForm({});
+
+  const { sorted, sort, toggle } = useSortable(rows, (row: Row, key: string) => row[key]);
 
   async function load() {
     setLoading(true);
@@ -116,19 +118,17 @@ export function ListResourcePage(props: Props) {
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
                   {props.columns
                     .filter((c) => c.type !== "textarea")
                     .map((c) => (
-                      <th key={c.key}>{c.label}</th>
+                      <SortableTh key={c.key} label={c.label} sortKey={c.key} sort={sort} onSort={toggle} />
                     ))}
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {sorted.map((row) => (
                   <tr key={row.item_id}>
-                    <td>{props.nameOf(row)}</td>
                     {props.columns
                       .filter((c) => c.type !== "textarea")
                       .map((c) => (

@@ -187,6 +187,51 @@ tbody tr:hover {
   background: var(--bg-elev-2);
 }
 
+th:has(.th-sort) {
+  padding: 0;
+}
+
+.th-sort {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 8px 10px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.th-sort:hover {
+  color: var(--text);
+  background: var(--bg-elev-2);
+  filter: none;
+}
+
+.th-sort.active {
+  color: var(--accent);
+}
+
+/* Dim until the column is hovered or sorted, so idle headers stay quiet. */
+.sort-arrow {
+  font-size: 9px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.th-sort:hover .sort-arrow,
+.th-sort.active .sort-arrow {
+  opacity: 1;
+}
+
 .table-scroll {
   overflow-x: auto;
 }

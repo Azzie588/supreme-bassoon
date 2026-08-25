@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
-import { api, type DashboardState } from "../api";
-import { Card, Stat } from "../components/ui";
+import { api, type DashboardState, type CreditCard, type LargeExpense } from "../api";
+import { Card, SortableTh, Stat } from "../components/ui";
+import { useSortable } from "../sorting";
 import { fmtCurrency, fmtDate } from "../utils";
 
 export function Dashboard(_props: { path?: string }) {
@@ -9,6 +10,17 @@ export function Dashboard(_props: { path?: string }) {
   useEffect(() => {
     api.get<DashboardState>("/state").then(setState);
   }, []);
+
+  // These run before the loading return so hook order stays constant across
+  // renders; both collections are empty until `state` arrives.
+  const cardSort = useSortable<CreditCard>(
+    state?.creditCards ?? [],
+    (c, key) => c[key as keyof CreditCard],
+  );
+  const expenseSort = useSortable<LargeExpense>(
+    state?.largeExpenses.filter((e) => !e.paid) ?? [],
+    (e, key) => e[key as keyof LargeExpense],
+  );
 
   if (!state) return <p class="muted">Loading…</p>;
 
@@ -44,15 +56,15 @@ export function Dashboard(_props: { path?: string }) {
           <table>
             <thead>
               <tr>
-                <th>Bank</th>
-                <th>Balance</th>
-                <th>Limit</th>
-                <th>Due</th>
-                <th>Note / intent</th>
+                <SortableTh label="Bank" sortKey="bank" sort={cardSort.sort} onSort={cardSort.toggle} />
+                <SortableTh label="Balance" sortKey="balance" sort={cardSort.sort} onSort={cardSort.toggle} />
+                <SortableTh label="Limit" sortKey="limit_amount" sort={cardSort.sort} onSort={cardSort.toggle} />
+                <SortableTh label="Due" sortKey="due_date" sort={cardSort.sort} onSort={cardSort.toggle} />
+                <SortableTh label="Note / intent" sortKey="notes" sort={cardSort.sort} onSort={cardSort.toggle} />
               </tr>
             </thead>
             <tbody>
-              {state.creditCards.map((c) => (
+              {cardSort.sorted.map((c) => (
                 <tr key={c.item_id}>
                   <td>
                     {c.bank} •{c.last4}
@@ -76,14 +88,14 @@ export function Dashboard(_props: { path?: string }) {
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Amount</th>
-                  <th>Due</th>
-                  <th>Category</th>
+                  <SortableTh label="Name" sortKey="name" sort={expenseSort.sort} onSort={expenseSort.toggle} />
+                  <SortableTh label="Amount" sortKey="amount" sort={expenseSort.sort} onSort={expenseSort.toggle} />
+                  <SortableTh label="Due" sortKey="due_date" sort={expenseSort.sort} onSort={expenseSort.toggle} />
+                  <SortableTh label="Category" sortKey="category" sort={expenseSort.sort} onSort={expenseSort.toggle} />
                 </tr>
               </thead>
               <tbody>
-                {unpaidExpenses.map((e) => (
+                {expenseSort.sorted.map((e) => (
                   <tr key={e.item_id}>
                     <td>{e.name}</td>
                     <td>{fmtCurrency(e.amount)}</td>

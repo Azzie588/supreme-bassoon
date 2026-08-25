@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { api, type PayPeriod } from "../api";
-import { Card } from "../components/ui";
+import { Card, SortableTh } from "../components/ui";
+import { useSortable } from "../sorting";
 import { BarChart } from "../components/BarChart";
 import { ListResourcePage } from "../components/ListResourcePage";
 import type { ColumnConfig } from "../components/LogResourcePage";
@@ -25,6 +26,12 @@ export function InflowOutflow(_props: { path?: string }) {
   }, []);
 
   const upcoming = periods.filter((p) => p.periodEnd >= new Date().toISOString().slice(0, 10)).slice(0, 12);
+
+  // The "Payments due" cell renders a list, so it sorts on how many fall in the
+  // period rather than on the concatenated text, which would order meaninglessly.
+  const { sorted, sort, toggle } = useSortable(upcoming, (p: PayPeriod, key: string) =>
+    key === "payments" ? p.payments.length : (p as unknown as Record<string, unknown>)[key],
+  );
   const labels = upcoming.map((p) => fmtDate(p.payDate));
   const series = [
     { label: "Inflow", data: upcoming.map((p) => p.inflow ?? 0), color: "#4caf7d" },
@@ -52,16 +59,16 @@ export function InflowOutflow(_props: { path?: string }) {
           <table>
             <thead>
               <tr>
-                <th>Pay date</th>
-                <th>Period</th>
-                <th>Inflow</th>
-                <th>Payments due</th>
-                <th>Outflow</th>
-                <th>Net</th>
+                <SortableTh label="Pay date" sortKey="payDate" sort={sort} onSort={toggle} />
+                <SortableTh label="Period" sortKey="periodStart" sort={sort} onSort={toggle} />
+                <SortableTh label="Inflow" sortKey="inflow" sort={sort} onSort={toggle} />
+                <SortableTh label="Payments due" sortKey="payments" sort={sort} onSort={toggle} />
+                <SortableTh label="Outflow" sortKey="totalOutflow" sort={sort} onSort={toggle} />
+                <SortableTh label="Net" sortKey="net" sort={sort} onSort={toggle} />
               </tr>
             </thead>
             <tbody>
-              {upcoming.map((p) => (
+              {sorted.map((p) => (
                 <tr key={p.payDate}>
                   <td>{fmtDate(p.payDate)}</td>
                   <td>
@@ -82,7 +89,6 @@ export function InflowOutflow(_props: { path?: string }) {
         title="Paydates"
         basePath="paydates"
         columns={paydateColumns}
-        nameOf={(r) => fmtDate(String(r.pay_date))}
         onChange={loadPeriods}
       />
     </div>

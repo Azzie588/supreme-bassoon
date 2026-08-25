@@ -1,4 +1,32 @@
 import type { JSX } from "preact";
+import type { SortState } from "../sorting";
+
+/**
+ * A column header that sorts on click. The inner button exists so the control is
+ * reachable and operable by keyboard; `aria-sort` reports current state to screen
+ * readers rather than relying on the arrow glyph alone.
+ */
+export function SortableTh(props: {
+  label: string;
+  sortKey: string;
+  sort: SortState;
+  onSort: (key: string) => void;
+}) {
+  const active = props.sort.key === props.sortKey;
+  return (
+    <th aria-sort={active ? (props.sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+      <button
+        type="button"
+        class={`th-sort ${active ? "active" : ""}`}
+        onClick={() => props.onSort(props.sortKey)}
+        title={`Sort by ${props.label}`}
+      >
+        {props.label}
+        <span class="sort-arrow">{active ? (props.sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
+      </button>
+    </th>
+  );
+}
 
 export function Card(props: { title?: string; children: JSX.Element | JSX.Element[] }) {
   return (

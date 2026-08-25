@@ -31,10 +31,12 @@ export function CreditCards(_props: { path?: string }) {
         {
           label: "Utilization",
           compute: (r) => fmtPercent(utilization(num(r.balance), num(r.limit_amount))),
+          sortValue: (r) => utilization(num(r.balance), num(r.limit_amount)),
         },
         {
           label: "30d interest",
           compute: (r) => fmtCurrency(interestOver30Days(num(r.balance), num(r.apr))),
+          sortValue: (r) => interestOver30Days(num(r.balance), num(r.apr)),
         },
       ]}
     />

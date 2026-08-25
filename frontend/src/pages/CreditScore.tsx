@@ -1,7 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
 import { api, type CreditScoreEntry } from "../api";
 import { useForm, toIntOrNull } from "../useForm";
-import { Card, Field } from "../components/ui";
+import { Card, Field, SortableTh } from "../components/ui";
+import { useSortable } from "../sorting";
 import { LineChart } from "../components/LineChart";
 import { fmtDate, todayISO } from "../utils";
 
@@ -44,6 +45,16 @@ export function CreditScore(_props: { path?: string }) {
     data: labels.map((l) => rows.find((r) => r.date === l)?.score ?? NaN),
   }));
 
+  // Feed the table newest-first so that remains the default before any column
+  // is clicked; the API returns entries oldest-first for the chart's benefit.
+  const {
+    sorted: sortedEntries,
+    sort,
+    toggle,
+  } = useSortable([...entries].reverse(), (e: CreditScoreEntry, key: string) =>
+    e[key as keyof CreditScoreEntry],
+  );
+
   return (
     <div>
       <div class="topbar">
@@ -80,14 +91,14 @@ export function CreditScore(_props: { path?: string }) {
           <table>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Score</th>
-                <th>Bureau</th>
-                <th>Source</th>
+                <SortableTh label="Date" sortKey="date" sort={sort} onSort={toggle} />
+                <SortableTh label="Score" sortKey="score" sort={sort} onSort={toggle} />
+                <SortableTh label="Bureau" sortKey="bureau" sort={sort} onSort={toggle} />
+                <SortableTh label="Source" sortKey="source" sort={sort} onSort={toggle} />
               </tr>
             </thead>
             <tbody>
-              {[...entries].reverse().map((e) => (
+              {sortedEntries.map((e) => (
                 <tr key={e.id}>
                   <td>{fmtDate(e.date)}</td>
                   <td>{e.score}</td>

@@ -83,7 +83,6 @@ export function Retirement(_props: { path?: string }) {
         title="Contribution rules"
         basePath="retirement-contributions"
         columns={contributionColumns}
-        nameOf={(r) => String(r.label ?? "Contribution rule")}
       />
     </div>
   );

@@ -16,7 +16,6 @@ export function LargeExpenses(_props: { path?: string }) {
       title="Large Upcoming Expenses"
       basePath="large-expenses"
       columns={columns}
-      nameOf={(r) => String(r.name ?? "Expense")}
     />
   );
 }
